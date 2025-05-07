@@ -43,6 +43,7 @@ const InputFields = () => {
       }
 
       const data = await response.json();
+      console.log(data);
       setResults(data.results || []);
     } catch (error: any) {
       console.error(error);

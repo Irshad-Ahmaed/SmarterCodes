@@ -8,7 +8,7 @@ interface ResultProps {
 }
 
 const ResultCard = ({ result, score, path, html }: ResultProps) => {
-  const [showHtml, setShowHtml] = useState(false);
+  const [showHtml, setShowHtml] = useState<boolean>(false);
 
   return (
     <div className="border rounded-lg p-4 shadow bg-white space-y-2">
