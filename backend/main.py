@@ -64,7 +64,7 @@ def crawl_internal_pages(base_url: str, max_pages: int = 10):
             if urlparse(full_url).netloc == base_netloc and full_url not in visited:
                 to_visit.append(full_url)
 
-    return collected  # List of {text, html, url}
+    return collected
 
 # --- Extract headings + paragraphs ---
 def extract_content_blocks(soup, page_url):
@@ -116,7 +116,7 @@ def search(input: Input):
     for obj in collection.iterator():
         collection.data.delete_by_id(obj.uuid)
 
-    # Insert blocks into Weaviate
+    # Insert blocks
     for block in blocks:
         embedding = model.encode(block["text"]).tolist()
         collection.data.insert(
@@ -128,20 +128,23 @@ def search(input: Input):
             vector=embedding
         )
 
-    # Semantic search
+    # Semantic search (now with distance)
     query_vector = model.encode(input.query).tolist()
     results = collection.query.near_vector(
         near_vector=query_vector,
-        limit=10
+        limit=10,
+        return_metadata=["distance", "certainty"]
     )
 
-    # Return structured results with just the path
+    # print("✅ Type:", type(results.objects[0]))
+    # print("✅ Distance:", results.objects[0].metadata)
+
     return {
         "results": [
             {
                 "result": obj.properties["text"],
                 "path": urlparse(obj.properties.get("url", input.url)).path or "/",
-                "score": obj.distance if hasattr(obj, 'distance') else 0.85,
+                "score": round(obj.metadata.certainty * 100, 2) if obj.metadata.certainty is not None else round((1 - obj.metadata.distance) * 100, 2),
                 "html": obj.properties["html"]
             }
             for obj in results.objects

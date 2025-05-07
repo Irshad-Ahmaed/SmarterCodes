@@ -19,7 +19,7 @@ const ResultCard = ({ result, score, path, html }: ResultProps) => {
           <p className="text-sm text-gray-500">Path: {path}</p>
         </div>
         <span className="bg-green-100 text-green-700 text-sm px-2 py-1 rounded">
-          {Math.round(score * 100)}% match
+          {Math.round(score)}% match
         </span>
       </div>
 
