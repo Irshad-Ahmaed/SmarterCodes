@@ -22,14 +22,15 @@ app.add_middleware(
 # --- Model and Weaviate client ---
 model = SentenceTransformer("all-MiniLM-L6-v2")
 client = connect_to_local(
-    additional_config=AdditionalConfig(grpc=False),
-    skip_init_checks=True
+    additional_config=AdditionalConfig(grpc=False), skip_init_checks=True
 )
+
 
 # --- Input schema ---
 class Input(BaseModel):
     url: str
     query: str
+
 
 # --- Crawl internal pages ---
 def crawl_internal_pages(base_url: str, max_pages: int = 10):
@@ -66,29 +67,27 @@ def crawl_internal_pages(base_url: str, max_pages: int = 10):
 
     return collected
 
+
 # --- Extract headings + paragraphs ---
 def extract_content_blocks(soup, page_url):
     for tag in soup(["script", "style"]):
         tag.decompose()
 
     blocks = []
-    headings = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+    headings = soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"])
 
     for heading in headings:
-        paragraph = heading.find_next('p')
+        paragraph = heading.find_next("p")
         if not paragraph:
             continue
 
         html_block = f'<div class="et_pb_text_inner">\n  {str(heading)}\n  {str(paragraph)}\n</div>'
         text_block = f"{heading.get_text(strip=True)} {paragraph.get_text(strip=True)}"
 
-        blocks.append({
-            "text": text_block,
-            "html": html_block,
-            "url": page_url
-        })
+        blocks.append({"text": text_block, "html": html_block, "url": page_url})
 
     return blocks
+
 
 # --- Main endpoint ---
 @app.post("/search")
@@ -105,9 +104,9 @@ def search(input: Input):
             properties=[
                 Property(name="text", data_type=DataType.TEXT),
                 Property(name="html", data_type=DataType.TEXT),
-                Property(name="url", data_type=DataType.TEXT)
+                Property(name="url", data_type=DataType.TEXT),
             ],
-            vector_index_config=Configure.VectorIndex.hnsw()
+            vector_index_config=Configure.VectorIndex.hnsw(),
         )
 
     collection = client.collections.get("Chunk")
@@ -123,17 +122,15 @@ def search(input: Input):
             properties={
                 "text": block["text"],
                 "html": block["html"],
-                "url": block["url"]
+                "url": block["url"],
             },
-            vector=embedding
+            vector=embedding,
         )
 
     # Semantic search (now with distance)
     query_vector = model.encode(input.query).tolist()
     results = collection.query.near_vector(
-        near_vector=query_vector,
-        limit=10,
-        return_metadata=["distance", "certainty"]
+        near_vector=query_vector, limit=10, return_metadata=["distance", "certainty"]
     )
 
     # print("✅ Type:", type(results.objects[0]))
@@ -144,8 +141,12 @@ def search(input: Input):
             {
                 "result": obj.properties["text"],
                 "path": urlparse(obj.properties.get("url", input.url)).path or "/",
-                "score": round(obj.metadata.certainty * 100, 2) if obj.metadata.certainty is not None else round((1 - obj.metadata.distance) * 100, 2),
-                "html": obj.properties["html"]
+                "score": (
+                    round(obj.metadata.certainty * 100, 2)
+                    if obj.metadata.certainty is not None
+                    else round((1 - obj.metadata.distance) * 100, 2)
+                ),
+                "html": obj.properties["html"],
             }
             for obj in results.objects
         ]
