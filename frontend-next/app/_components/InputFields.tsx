@@ -45,9 +45,14 @@ const InputFields = () => {
       const data = await response.json();
       console.log(data);
       setResults(data.results || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      setError(error.message || "Something went wrong");
+
+      if (error instanceof Error) {
+        setError(error.message || "Something went wrong");
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
