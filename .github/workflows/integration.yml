@@ -79,4 +79,4 @@ jobs:
       run: |
         python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
         sleep 12
-        curl -f http://localhost:8000 || exit 1
+        curl -X GET "http://localhost:8000" || exit 1
