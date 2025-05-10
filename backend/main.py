@@ -11,6 +11,7 @@ from weaviate.classes.config import Property, DataType, Configure
 
 # --- FastAPI setup ---
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -18,6 +19,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 # --- Model and Weaviate client ---
 model = SentenceTransformer("all-MiniLM-L6-v2")
