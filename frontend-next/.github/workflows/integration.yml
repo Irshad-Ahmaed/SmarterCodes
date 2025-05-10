@@ -32,6 +32,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+        working-directory: frontend-next
 
       - name: Run Build
         run: npm run build
+        working-directory: frontend-next
