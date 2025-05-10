@@ -31,17 +31,18 @@ git clone https://github.com/Irshad-Ahmaed/SmarterCodes.git
 cd SmarterCodes
 ```
 
-### 2. Start Weaviate (Vector DB)
-```bash
-docker-compose up
-```
-
-### 3. Setup and Run Backend
+### 2. Backend Setup
+### 2.1. Virtual Environment setup
 ```bash
 cd backend
 python -m venv .venv
-.venv\Scripts\activate    
+.venv\Scripts\activate 
+```
+
+### 2.2. Backend Run
+```bash
 pip install -r requirements.txt
+docker-compose up
 uvicorn main:app --reload --port 8000
 ```
 
