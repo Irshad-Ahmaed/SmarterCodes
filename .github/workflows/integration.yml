@@ -53,6 +53,12 @@ jobs:
           PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
           DEFAULT_VECTORIZER_MODULE: 'none'
           ENABLE_MODULES: ''
+      
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: --name redis --restart always
 
     steps:
     - uses: actions/checkout@v3
@@ -73,13 +79,25 @@ jobs:
       working-directory: ./backend
       run: |
         black --check .
-        
+      
+    - name: Test Redis connection
+      working-directory: ./backend
+      run: |
+        python -c "
+        import redis
+        r = redis.Redis(host='localhost', port=6379)
+        r.set('test-key', 'test-value')
+        value = r.get('test-key')
+        assert value == b'test-value', f'Unexpected Redis response: {value}'
+        print('Redis is working correctly')
+        "
+
     - name: Run application health check
       working-directory: ./backend
       run: |
         python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
         echo "Waiting for the server to start..."
-        for i in {1..15}; do
+        for i in {1..7}; do
           if curl -fs http://localhost:8000/health > /dev/null; then
             echo "Server is up!"
               exit 0

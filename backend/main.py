@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
@@ -8,6 +8,10 @@ from urllib.parse import urlparse, urljoin
 from weaviate import connect_to_local
 from weaviate.classes.init import AdditionalConfig
 from weaviate.classes.config import Property, DataType, Configure
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+import redis.asyncio as redis
+from contextlib import asynccontextmanager
 
 # --- FastAPI setup ---
 app = FastAPI()
@@ -19,6 +23,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Lifespan event for Redis initialization ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    redis_client = redis.Redis(host="localhost", port=6379, db=0)
+    await FastAPILimiter.init(redis_client)
+    yield
+    await redis_client.close()
+
+
+app.router.lifespan_context = lifespan
 
 
 @app.get("/health")
@@ -96,8 +112,15 @@ def extract_content_blocks(soup, page_url):
     return blocks
 
 
+async def get_client_ip(request):
+    return request.client.host
+
+
 # --- Main endpoint ---
-@app.post("/search")
+@app.post(
+    "/search",
+    dependencies=[Depends(RateLimiter(times=3, seconds=60, identifier=get_client_ip))],
+)
 def search(input: Input):
     print(f"🚀 Starting crawl for: {input.url}")
     blocks = crawl_internal_pages(input.url, max_pages=10)
