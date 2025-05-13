@@ -81,16 +81,22 @@ jobs:
       
     - name: Test Redis connection
       run: |
-        for i in {1..7}; do
-          if redis-cli -h localhost ping | grep -q PONG; then
-            echo "Redis is ready"
-            exit 0
-          fi
-          echo "Waiting for Redis..."
-          sleep 2
-        done
-        echo "Redis did not start in time"
-        exit 1
+        python -c "
+        import time
+        import redis
+
+        r = redis.Redis(host='localhost', port=6379)
+        for i in range(7):
+            try:
+                if r.ping():
+                    print('Redis is ready')
+                    exit(0)
+            except redis.exceptions.ConnectionError:
+                print(f'Waiting for Redis... ({i+1})')
+                time.sleep(2)
+        print('Redis did not start in time')
+        exit(1)
+        "
 
     - name: Run application health check
       working-directory: ./backend
